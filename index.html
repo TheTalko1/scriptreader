@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theatre Line Memorization</title>
+    <style>
+        body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        .loading { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            background: linear-gradient(to bottom right, #4c1d95, #7c3aed, #ec4899);
+            color: white;
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div class="loading">Loading...</div>
+    </div>
+    
+    <!-- Load React from CDN -->
+    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Main App Script -->
+    <script>
+        // Check if React is loaded
+        function waitForReact() {
+            if (typeof React !== 'undefined' && typeof ReactDOM !== 'undefined') {
+                initApp();
+            } else {
+                setTimeout(waitForReact, 100);
+            }
+        }
+
+        function initApp() {
+            const { useState } = React;
+            const e = React.createElement;
+
+            const FlashcardApp = () => {
+              const [allFlashcards, setAllFlashcards] = useState([]);
+              const [currentIndex, setCurrentIndex] = useState(0);
+              const [showLine, setShowLine] = useState(false);
+              const [selectedCharacter, setSelectedCharacter] = useState('');
+              const [showUploadModal, setShowUploadModal] = useState(true);
+              const [scriptText, setScriptText] = useState('');
+              const [scriptTitle, setScriptTitle] = useState('');
+              const [orderMode, setOrderMode] = useState('sequential');
+              
+              // Icons as SVG strings
+              const ChevronLeft = () => e('svg', { className: "w-6 h-6", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", xmlns: "http://www.w3.org/2000/svg" },
+                e('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M15 19l-7-7 7-7" })
+              );
+              
+              const ChevronRight = () => e('svg', { className: "w-6 h-6", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", xmlns: "http://www.w3.org/2000/svg" },
+                e('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M9 5l7 7-7 7" })
+              );
+              
+              const Eye = () => e('svg', { className: "w-5 h-5", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", xmlns: "http://www.w3.org/2000/svg" },
+                e('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M15 12a3 3 0 11-6 0 3 3 0 016 0z" }),
+                e('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" })
+              );
+              
+              const EyeOff = () => e('svg', { className: "w-4 h-4", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", xmlns: "http://www.w3.org/2000/svg" },
+                e('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" })
+              );
+              
+              const Upload = () => e('svg', { className: "w-5 h-5", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", xmlns: "http://www.w3.org/2000/svg" },
+                e('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" })
+              );
+              
+              const FileText = () => e('svg', { className: "w-5 h-5", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", xmlns: "http://www.w3.org/2000/svg" },
+                e('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" })
+              );
+              
+              const RotateCw = () => e('svg', { className: "w-4 h-4", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", xmlns: "http://www.w3.org/2000/svg" },
+                e('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" })
+              );
+              
+              // Parse script text to extract characters and create flashcards
+              const parseScript = (text) => {
+                const lines = text.split('\n');
+                const flashcards = [];
+                let currentScene = 'Scene';
+                let flashcardId = 1;
+                let previousLine = '';
+                let previousCharacter = '';
+                let isFirstLineOfScript = true;
+                
+                for (let i = 0; i < lines.length; i++) {
+                  const line = lines[i].trim();
+                  
+                  if (!line) continue;
+                  
+                  const characterMatch = line.match(/^\*?\*?([A-Z][A-Z\s]+)\*?\*?\s*\.\s*(.+)/);
+                  
+                  if (characterMatch) {
+                    const character = characterMatch[1].trim();
+                    let dialogue = characterMatch[2].trim();
+                    
+                    dialogue = dialogue.replace(/^\*?\([^)]+\)\*?\s*/, '');
+                    
+                    if (dialogue.startsWith('*')) {
+                      dialogue = dialogue.substring(1).trim();
+                    }
+                    
+                    let fullDialogue = dialogue;
+                    let j = i + 1;
+                    while (j < lines.length) {
+                      const nextLine = lines[j].trim();
+                      
+                      if (!nextLine || nextLine.match(/^\*?\*?[A-Z][A-Z\s]+\*?\*?\s*\./)) {
+                        break;
+                      }
+                      
+                      if (nextLine.match(/^\*?\([^)]+\)\*?$/)) {
+                        j++;
+                        continue;
+                      }
+                      
+                      fullDialogue += ' ' + nextLine.replace(/^\*/, '').trim();
+                      j++;
+                    }
+                    
+                    fullDialogue = fullDialogue.replace(/\*+/g, '').trim();
+                    
+                    if (fullDialogue && !fullDialogue.match(/^\([^)]+\)$/)) {
+                      if (isFirstLineOfScript) {
+                        flashcards.push({
+                          id: flashcardId++,
+                          character: character,
+                          cue: '<Scene opens>',
+                          line: fullDialogue,
+                          scene: currentScene
+                        });
+                        isFirstLineOfScript = false;
+                      } else if (previousLine) {
+                        flashcards.push({
+                          id: flashcardId++,
+                          character: character,
+                          cue: `${previousCharacter}: ${previousLine}`,
+                          line: fullDialogue,
+                          scene: currentScene
+                        });
+                      }
+                      
+                      previousLine = fullDialogue;
+                      previousCharacter = character;
+                    }
+                    
+                    i = j - 1;
+                  }
+                  else if (line.match(/^(Scene|Act|SCENE|ACT)/i)) {
+                    currentScene = line;
+                  }
+                }
+                
+                return flashcards;
+              };
+              
+              const handleScriptSubmit = () => {
+                if (!scriptText.trim()) return;
+                
+                const parsed = parseScript(scriptText);
+                setAllFlashcards(parsed);
+                setShowUploadModal(false);
+                setCurrentIndex(0);
+                
+                const uniqueCharacters = [...new Set(parsed.map(card => card.character))].sort();
+                if (uniqueCharacters.length > 0) {
+                  setSelectedCharacter(uniqueCharacters[0]);
+                }
+              };
+              
+              const characters = [...new Set(allFlashcards.map(card => card.character))].sort();
+              const flashcards = allFlashcards.filter(card => card.character === selectedCharacter);
+              const currentCard = flashcards[currentIndex];
+
+              const nextCard = () => {
+                setShowLine(false);
+                if (orderMode === 'sequential') {
+                  setCurrentIndex((prev) => (prev + 1) % flashcards.length);
+                } else {
+                  if (flashcards.length > 1) {
+                    let newIndex;
+                    do {
+                      newIndex = Math.floor(Math.random() * flashcards.length);
+                    } while (newIndex === currentIndex);
+                    setCurrentIndex(newIndex);
+                  }
+                }
+              };
+
+              const prevCard = () => {
+                setShowLine(false);
+                if (orderMode === 'sequential') {
+                  setCurrentIndex((prev) => (prev - 1 + flashcards.length) % flashcards.length);
+                } else {
+                  nextCard();
+                }
+              };
+
+              const toggleLine = () => {
+                setShowLine(!showLine);
+              };
+
+              const shuffleCards = () => {
+                if (flashcards.length > 0) {
+                  setCurrentIndex(Math.floor(Math.random() * flashcards.length));
+                  setShowLine(false);
+                }
+              };
+
+              const handleCharacterChange = (evt) => {
+                setSelectedCharacter(evt.target.value);
+                setCurrentIndex(0);
+                setShowLine(false);
+              };
+
+              if (showUploadModal) {
+                return e('div', { className: "min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4 flex items-center justify-center" },
+                  e('div', { className: "w-full max-w-4xl" },
+                    e('div', { className: "bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl" },
+                      e('h1', { className: "text-3xl font-bold text-white text-center mb-6" }, "Upload Your Script"),
+                      
+                      e('div', { className: "mb-4" },
+                        e('label', { className: "text-white/70 text-sm block mb-2" }, "Script Title (optional)"),
+                        e('input', {
+                          type: "text",
+                          value: scriptTitle,
+                          onChange: (evt) => setScriptTitle(evt.target.value),
+                          placeholder: "e.g., The Wizard of Oz",
+                          className: "w-full bg-white/20 text-white px-4 py-2 rounded-lg border border-white/30 focus:outline-none focus:border-white/50 placeholder-white/50"
+                        })
+                      ),
+                      
+                      e('div', { className: "mb-6" },
+                        e('label', { className: "text-white/70 text-sm block mb-2" }, "Paste your script text below"),
+                        e('textarea', {
+                          value: scriptText,
+                          onChange: (evt) => setScriptText(evt.target.value),
+                          placeholder: "**CHARACTER**. Dialogue here...\n**ANOTHER CHARACTER**. Their response...",
+                          className: "w-full h-96 bg-white/20 text-white px-4 py-3 rounded-lg border border-white/30 focus:outline-none focus:border-white/50 placeholder-white/50 font-mono text-sm"
+                        })
+                      ),
+                      
+                      e('div', { className: "flex gap-4 justify-center" },
+                        e('button', {
+                          onClick: handleScriptSubmit,
+                          disabled: !scriptText.trim(),
+                          className: "flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-white/20 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg transition-colors"
+                        },
+                          e(Upload),
+                          "Create Flashcards"
+                        )
+                      ),
+                      
+                      e('div', { className: "mt-6 text-white/60 text-sm" },
+                        e('p', { className: "mb-2" }, "Format your script like this:"),
+                        e('pre', { className: "bg-black/30 p-3 rounded text-xs overflow-x-auto" },
+                          "**CHARACTER**. Their dialogue here.\n**ANOTHER CHARACTER**. Response to the first character.\n*(Stage directions in parentheses)*\n**CHARACTER**. Next line of dialogue."
+                        )
+                      )
+                    )
+                  )
+                );
+              }
+
+              return e('div', { className: "min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4 flex items-center justify-center" },
+                e('div', { className: "w-full max-w-2xl" },
+                  e('h1', { className: "text-4xl font-bold text-white text-center mb-4" }, "Theatre Line Memorization"),
+                  scriptTitle && e('p', { className: "text-white/70 text-center mb-6" }, scriptTitle),
+                  
+                  e('div', { className: "bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl" },
+                    e('div', { className: "space-y-4 mb-6" },
+                      e('div', { className: "flex items-center gap-4" },
+                        e('div', { className: "flex-1" },
+                          e('label', { className: "text-white/70 text-sm block mb-1" }, "Character"),
+                          e('select', {
+                            value: selectedCharacter,
+                            onChange: handleCharacterChange,
+                            className: "bg-white/20 text-white px-4 py-2 rounded-lg border border-white/30 focus:outline-none focus:border-white/50 w-full"
+                          },
+                            characters.map(char => e('option', { key: char, value: char, className: "bg-purple-900" }, char))
+                          )
+                        ),
+                        
+                        e('button', {
+                          onClick: () => setShowUploadModal(true),
+                          className: "bg-white/20 hover:bg-white/30 text-white p-2 rounded-lg transition-colors mt-6",
+                          title: "Load new script"
+                        }, e(FileText))
+                      ),
+                      
+                      e('div', null,
+                        e('label', { className: "text-white/70 text-sm block mb-2" }, "Practice Order"),
+                        e('div', { className: "flex gap-2" },
+                          e('button', {
+                            onClick: () => {
+                              if (orderMode !== 'sequential') {
+                                setOrderMode('sequential');
+                                setCurrentIndex(0);
+                                setShowLine(false);
+                              }
+                            },
+                            className: `flex-1 px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                              orderMode === 'sequential' 
+                                ? 'bg-purple-600 text-white' 
+                                : 'bg-white/20 hover:bg-white/30 text-white'
+                            }`
+                          }, "📋 Sequential"),
+                          
+                          e('button', {
+                            onClick: () => {
+                              if (orderMode !== 'random') {
+                                setOrderMode('random');
+                                setShowLine(false);
+                              }
+                            },
+                            className: `flex-1 px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                              orderMode === 'random' 
+                                ? 'bg-purple-600 text-white' 
+                                : 'bg-white/20 hover:bg-white/30 text-white'
+                            }`
+                          }, "🎲 Random")
+                        ),
+                        e('p', { className: "text-white/50 text-xs mt-1" },
+                          orderMode === 'sequential' 
+                            ? 'Going through script in order' 
+                            : 'Cards presented randomly'
+                        )
+                      )
+                    ),
+
+                    flashcards.length > 0 ? (
+                      e('div', { className: "bg-white/20 backdrop-blur rounded-xl p-8 mb-6 min-h-[300px] flex flex-col justify-center" },
+                        e('div', { className: "text-center" },
+                          e('p', { className: "text-white/70 text-sm mb-2" }, currentCard.scene),
+                          e('h2', { className: "text-2xl font-bold text-white mb-4" }, currentCard.character),
+                          
+                          e('div', { className: "mb-6" },
+                            e('p', { className: "text-white/90 text-lg italic" }, currentCard.cue)
+                          ),
+                          
+                          e('div', { className: "min-h-[100px] flex items-center justify-center" },
+                            showLine ? (
+                              e('p', { className: "text-white text-xl" }, currentCard.line)
+                            ) : (
+                              e('button', {
+                                onClick: toggleLine,
+                                className: "flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-lg transition-colors"
+                              },
+                                e(Eye),
+                                "Show Line"
+                              )
+                            )
+                          )
+                        )
+                      )
+                    ) : (
+                      e('div', { className: "bg-white/20 backdrop-blur rounded-xl p-8 mb-6 min-h-[300px] flex items-center justify-center" },
+                        e('p', { className: "text-white/70 text-lg" },
+                          allFlashcards.length === 0 
+                            ? "No flashcards created yet. Try uploading a script!"
+                            : "No flashcards for this character"
+                        )
+                      )
+                    ),
+
+                    e('div', { className: "flex justify-between items-center mb-6" },
+                      e('button', {
+                        onClick: prevCard,
+                        className: "bg-white/20 hover:bg-white/30 text-white p-3 rounded-lg transition-colors",
+                        disabled: flashcards.length === 0,
+                        title: orderMode === 'random' ? 'Random card' : 'Previous card'
+                      }, e(ChevronLeft)),
+
+                      e('div', { className: "flex gap-4" },
+                        e('button', {
+                          onClick: shuffleCards,
+                          className: "bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2",
+                          disabled: flashcards.length === 0
+                        },
+                          e(RotateCw),
+                          "Jump to Random"
+                        ),
+                        
+                        showLine && e('button', {
+                          onClick: toggleLine,
+                          className: "bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+                        },
+                          e(EyeOff),
+                          "Hide"
+                        )
+                      ),
+
+                      e('button', {
+                        onClick: nextCard,
+                        className: "bg-white/20 hover:bg-white/30 text-white p-3 rounded-lg transition-colors",
+                        disabled: flashcards.length === 0,
+                        title: orderMode === 'random' ? 'Random card' : 'Next card'
+                      }, e(ChevronRight))
+                    ),
+
+                    e('div', { className: "text-center text-white/70" },
+                      flashcards.length > 0 
+                        ? orderMode === 'sequential'
+                          ? `Card ${currentIndex + 1} of ${flashcards.length} (Sequential)`
+                          : `Card ${currentIndex + 1} of ${flashcards.length} (Random)`
+                        : 'No cards available'
+                    )
+                  ),
+
+                  e('div', { className: "mt-8 text-white/70 text-center text-sm" },
+                    e('p', null, "Tip: The cue shows the previous line in the script - perfect for learning your entrance timing!")
+                  )
+                )
+              );
+            };
+
+            // Render the app
+            try {
+                const container = document.getElementById('root');
+                const root = ReactDOM.createRoot(container);
+                root.render(e(FlashcardApp));
+            } catch (error) {
+                console.error('Error rendering app:', error);
+                document.getElementById('root').innerHTML = '<div style="color: red; padding: 20px;">Error loading app: ' + error.message + '</div>';
+            }
+        }
+
+        // Start the app
+        waitForReact();
+    </script>
+</body>
+</html>
